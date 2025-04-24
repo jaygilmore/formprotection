@@ -1,0 +1,127 @@
+<?php
+/**
+ * formProtectionHook
+ *
+ * A FormIt hook for MODX that provides enhanced spam protection through
+ * content filtering, timed submissions, and email validation.
+ *
+ * IMPORTANT: Requires the generateTimeTokenHook to be used as a preHook
+ * and a hidden input field in the form for the time token.
+ *
+ * @author Jay Gilmore <jay@modx.com>
+ * @version 0.9.1
+ * @date April 23, 2025
+ * @package formit
+ * @subpackage hooks
+ *
+ * PROPERTIES:
+ * -------------------
+ * spamEmailField      - Field name for email address (default: email)
+ * spamWordPatterns    - Comma-separated list of spam words/patterns to check for
+ * spamEmailPatterns   - Comma-separated list of spam email patterns to reject
+ * spamTimeField       - Field name for time token (default: form_time_token)
+ * spamTimeThreshold   - Minimum seconds before form submission is allowed (default: 7)
+ * spamContentErrorMessage - Error message for spam content detection
+ * spamEmailErrorMessage   - Error message for spam email detection
+ * timeTokenErrorMessage   - Error message for invalid time token
+ * timeThresholdErrorMessage - Error message for form submitted too fast
+ *
+ * USAGE:
+ * 1. Add the generateTimeTokenHook as a preHook:
+ * [[!FormIt?
+ *   &preHooks=`generateTimeTokenHook`
+ *   &hooks=`formProtectionHook,email`
+ *   &spamTimeThreshold=`5`
+ *   ...
+ * ]]
+ *
+ * 2. Add this hidden input to your form:
+ * <input type="hidden" name="form_time_token" id="form_time_token" value="[[!+fi.form_time_token]]">
+ */
+
+// Get form values 
+$formFields = $hook->getValues();
+
+// Get email field
+$emailField = $modx->getOption('spamEmailField', $scriptProperties, 'email');
+
+// Load spam patterns
+$spamWords = $modx->getOption('spamWordPatterns', $scriptProperties, 
+    'viagra,porn,sex,shit,fuck,bit.ly,youtube,free,optimization,CRM,bitcoin,crypto,ericjones');
+$spamWordPatterns = array_map('trim', explode(',', $spamWords));
+
+$spamEmails = $modx->getOption('spamEmailPatterns', $scriptProperties, 
+    'ericjones,order-fulfillment.net,bestlocaldata.com,.ru,getpeople.io');
+$spamEmailPatterns = array_map('trim', explode(',', $spamEmails));
+
+// Configurable error messages
+$spamContentErrorMessage = $modx->getOption('spamContentErrorMessage', $scriptProperties, 'Input picked up as spam.');
+$spamEmailErrorMessage = $modx->getOption('spamEmailErrorMessage', $scriptProperties, 'Email picked up as spam.');
+$timeTokenErrorMessage = $modx->getOption('timeTokenErrorMessage', $scriptProperties, 'Invalid time token.');
+$timeThresholdErrorMessage = $modx->getOption('timeThresholdErrorMessage', $scriptProperties, 'Form submitted too fast. Please wait a moment.');
+
+// Spam content check for all text fields
+foreach ($formFields as $fieldName => $fieldValue) {
+    // Skip non-text fields (e.g., hidden fields, checkboxes, etc.)
+    if (is_array($fieldValue) || in_array($fieldName, [$emailField, 'form_time_token'])) {
+        continue;
+    }
+
+    if (empty($fieldValue)) {
+        continue;
+    }
+
+    foreach ($spamWordPatterns as $spam) {
+        if (!empty($spam) && stripos($fieldValue, $spam) !== false) {
+            $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] SPAM DETECTED in field '$fieldName' with pattern '$spam'");
+            $hook->addError($fieldName, $spamContentErrorMessage);
+            return false;
+        }
+    }
+}
+
+// Time token validation
+$timeField = $modx->getOption('spamTimeField', $scriptProperties, 'form_time_token');
+$secretKey = $modx->getOption('formit.spam_time_secret', null, 'changeme');
+$threshold = (int)$modx->getOption('spamTimeThreshold', $scriptProperties, 7);
+
+$token = $formFields[$timeField] ?? '';
+
+if (!empty($token) && strpos($token, ':') !== false) {
+    list($timestamp, $hash) = explode(':', $token);
+
+    $expectedHash = hash_hmac('sha256', $timestamp, $secretKey);
+
+    if (!hash_equals($expectedHash, $hash)) {
+        $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Time token hash validation failed");
+        $hook->addError($timeField, $timeTokenErrorMessage);
+        return false;
+    }
+
+    $elapsed = time() - (int)$timestamp;
+
+    if ($elapsed < $threshold) {
+        $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Form submitted too quickly ($elapsed seconds < $threshold seconds threshold)");
+        $hook->addError($timeField, $timeThresholdErrorMessage);
+        return false;
+    }
+} else {
+    $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Invalid time token format");
+    $hook->addError($timeField, $timeTokenErrorMessage);
+    return false;
+}
+
+// Email pattern spam check
+if (isset($formFields[$emailField])) {
+    $email = $formFields[$emailField];
+
+    foreach ($spamEmailPatterns as $spam) {
+        if (!empty($spam) && stripos($email, $spam) !== false) {
+            $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Spam email detected with pattern '$spam'");
+            $hook->addError($emailField, $spamEmailErrorMessage);
+            return false;
+        }
+    }
+}
+
+return true;
