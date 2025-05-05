@@ -51,7 +51,7 @@ $spamWords = $modx->getOption('spamWordPatterns', $scriptProperties,
 $spamWordPatterns = array_map('trim', explode(',', $spamWords));
 
 $spamEmails = $modx->getOption('spamEmailPatterns', $scriptProperties, 
-    'ericjones,order-fulfillment.net,bestlocaldata.com,.ru,getpeople.io');
+    'order-fulfillment.net,bestlocaldata.com,.ru');
 $spamEmailPatterns = array_map('trim', explode(',', $spamEmails));
 
 // Configurable error messages

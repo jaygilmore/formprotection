@@ -61,7 +61,7 @@ Form Protection uses a two-hook approach to validate submissions:
 |----------|-------------|---------|
 | spamEmailField | Field name for email address | "email" |
 | spamWordPatterns | Comma-separated list of spam words/patterns | "viagra,porn,sex,shit,fuck,bit.ly,youtube,free,optimization,CRM,bitcoin,crypto,ericjones" |
-| spamEmailPatterns | Comma-separated list of spam email patterns | "ericjones,order-fulfillment.net,bestlocaldata.com,.ru,getpeople.io" |
+| spamEmailPatterns | Comma-separated list of spam email patterns | "order-fulfillment.net,bestlocaldata.com,.ru" |
 | spamTimeField | Field name for time token | "form_time_token" |
 | spamTimeThreshold | Minimum seconds before form submission is allowed | 7 |
 | spamContentErrorMessage | Error message for spam content detection | "Input picked up as spam." |
