@@ -9,18 +9,16 @@
  * and a hidden input field in the form for the time token.
  *
  * @author Jay Gilmore <jay@modx.com>
- * @version 0.9.1
- * @date April 23, 2025
  * @package formit
  * @subpackage hooks
  *
  * PROPERTIES:
  * -------------------
- * spamEmailField      - Field name for email address (default: email)
- * spamWordPatterns    - Comma-separated list of spam words/patterns to check for
- * spamEmailPatterns   - Comma-separated list of spam email patterns to reject
- * spamTimeField       - Field name for time token (default: form_time_token)
- * spamTimeThreshold   - Minimum seconds before form submission is allowed (default: 7)
+ * spamEmailField          - Field name for email address (default: email)
+ * spamWordPatterns        - Comma-separated list of spam words/patterns to check for
+ * spamEmailPatterns       - Comma-separated list of spam email patterns to reject
+ * spamTimeField           - Field name for time token (default: form_time_token)
+ * spamTimeThreshold       - Minimum seconds before form submission is allowed (default: 7)
  * spamContentErrorMessage - Error message for spam content detection
  * spamEmailErrorMessage   - Error message for spam email detection
  * timeTokenErrorMessage   - Error message for invalid time token
@@ -75,40 +73,8 @@ foreach ($formFields as $fieldName => $fieldValue) {
         if (!empty($spam) && stripos($fieldValue, $spam) !== false) {
             $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] SPAM DETECTED in field '$fieldName' with pattern '$spam'");
             $hook->addError($fieldName, $spamContentErrorMessage);
-            return false;
         }
     }
-}
-
-// Time token validation
-$timeField = $modx->getOption('spamTimeField', $scriptProperties, 'form_time_token');
-$secretKey = $modx->getOption('formit.spam_time_secret', null, 'changeme');
-$threshold = (int)$modx->getOption('spamTimeThreshold', $scriptProperties, 7);
-
-$token = $formFields[$timeField] ?? '';
-
-if (!empty($token) && strpos($token, ':') !== false) {
-    list($timestamp, $hash) = explode(':', $token);
-
-    $expectedHash = hash_hmac('sha256', $timestamp, $secretKey);
-
-    if (!hash_equals($expectedHash, $hash)) {
-        $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Time token hash validation failed");
-        $hook->addError($timeField, $timeTokenErrorMessage);
-        return false;
-    }
-
-    $elapsed = time() - (int)$timestamp;
-
-    if ($elapsed < $threshold) {
-        $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Form submitted too quickly ($elapsed seconds < $threshold seconds threshold)");
-        $hook->addError($timeField, $timeThresholdErrorMessage);
-        return false;
-    }
-} else {
-    $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Invalid time token format");
-    $hook->addError($timeField, $timeTokenErrorMessage);
-    return false;
 }
 
 // Email pattern spam check
@@ -119,9 +85,39 @@ if (isset($formFields[$emailField])) {
         if (!empty($spam) && stripos($email, $spam) !== false) {
             $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Spam email detected with pattern '$spam'");
             $hook->addError($emailField, $spamEmailErrorMessage);
-            return false;
         }
     }
 }
 
-return true;
+// Time token validation (only if there are no existing form errors)
+if (empty($hook->getErrors())) {
+    $timeField = $modx->getOption('spamTimeField', $scriptProperties, 'form_time_token');
+    $secretKey = $modx->getOption('formit.spam_time_secret', null, 'changeme');
+    $threshold = (int)$modx->getOption('spamTimeThreshold', $scriptProperties, 7);
+
+    $token = $formFields[$timeField] ?? '';
+
+    if (!empty($token) && strpos($token, ':') !== false) {
+        list($timestamp, $hash) = explode(':', $token);
+
+        $expectedHash = hash_hmac('sha256', $timestamp, $secretKey);
+
+        if (!hash_equals($expectedHash, $hash)) {
+            $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Time token hash validation failed");
+            $hook->addError($timeField, $timeTokenErrorMessage);
+        } else {
+            $elapsed = time() - (int)$timestamp;
+
+            if ($elapsed < $threshold) {
+                $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Form submitted too quickly ($elapsed seconds < $threshold seconds threshold)");
+                $hook->addError($timeField, $timeThresholdErrorMessage);
+            }
+        }
+    } else {
+        $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Invalid time token format");
+        $hook->addError($timeField, $timeTokenErrorMessage);
+    }
+}
+
+// Return true only if there are no errors
+return empty($hook->getErrors());
