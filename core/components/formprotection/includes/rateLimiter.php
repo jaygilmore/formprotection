@@ -14,9 +14,11 @@
  * @param string $actionKey A unique identifier for the action being rate limited
  * @param int $limitSeconds The number of seconds to enforce rate limiting
  * @param string $cookieName The name of the cookie used for rate limiting (default: 'submission')
+ * @param int $maxSubmissions The maximum number of submissions allowed within the submission interval
+ * @param int $submissionInterval The interval in seconds to count submissions (default: 86400 seconds)
  * @return bool True if rate limited, false otherwise
  */
-function isRateLimited($actionKey, $limitSeconds = 10, $cookieName = 'submission') {
+function isRateLimited($actionKey, $limitSeconds = 10, $cookieName = 'submission', $maxSubmissions = 5, $submissionInterval = 86400) {
     // Get client IP address and User-Agent
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
@@ -37,6 +39,28 @@ function isRateLimited($actionKey, $limitSeconds = 10, $cookieName = 'submission
 
     // Get current timestamp
     $now = time();
+
+    // Load submission timestamps from the file
+    $timestamps = file_exists($file) ? json_decode(file_get_contents($file), true) : [];
+
+    // Remove timestamps outside the submission interval
+    $timestamps = array_filter($timestamps, function ($timestamp) use ($now, $submissionInterval) {
+        return ($now - $timestamp) <= $submissionInterval;
+    });
+
+    // Check if the number of submissions exceeds the limit
+    if (count($timestamps) >= $maxSubmissions) {
+        return true; // Rate limited due to max submissions
+    }
+
+    // Add the current timestamp and save back to the file
+    $timestamps[] = $now;
+    file_put_contents($file, json_encode($timestamps));
+
+    // Enforce the per-request rate limit (e.g., 10 seconds between submissions)
+    if (count($timestamps) > 1 && ($now - $timestamps[count($timestamps) - 2]) < $limitSeconds) {
+        return true; // Rate limited due to per-request delay
+    }
 
     // Garbage collection: Remove old temp files and limit total file count
     $tempDir = sys_get_temp_dir();
@@ -63,19 +87,6 @@ function isRateLimited($actionKey, $limitSeconds = 10, $cookieName = 'submission
             @unlink($tempFile);
         }
     }
-
-    // Check if a record exists for this key
-    if (file_exists($file)) {
-        $last = (int)file_get_contents($file);
-
-        // If the time elapsed is less than the limit, rate limit
-        if (($now - $last) < $limitSeconds) {
-            return true;
-        }
-    }
-
-    // Store the current timestamp
-    file_put_contents($file, $now);
 
     // Not rate limited
     return false;
