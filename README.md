@@ -33,6 +33,8 @@ Requires: MODX Revolution, FormIt
   &rateLimit=`1`
   &rateLimitSeconds=`30`
   &rateLimitCookieName=`threshold_token`
+  &rateLimitMaxSubmissions=`10`
+  &rateLimitSubmissionInterval=`3600`
 ]]
 
 <form action="[[~[[*id]]]]" method="post">
@@ -78,6 +80,9 @@ Form Protection uses a two-hook approach to validate submissions:
 | rateLimitCookieName       | Name of the cookie used for rate limiting       | "submission"                             |
 | formId                    | Optional form ID for unique rate limiting per form | ""                                      |
 | rateLimitErrorMessage     | Error message for exceeding rate limit          | "You just submitted this form successfully. Please wait a while before submitting again." |
+| rateLimitMaxSubmissions   | Maximum number of submissions allowed within the timeframe | 5                                       |
+| rateLimitSubmissionInterval | Timeframe (in seconds) for counting submissions | 86400 (1 day)                           |
+| rateLimitMaxSubmissionsErrorMessage | Error message for exceeding max submissions | "You have reached the maximum number of submissions allowed. Please try again later." |
 
 #### generateTimeTokenHook
 | Property                  | Description                                      | Default                                   |
@@ -89,12 +94,14 @@ Form Protection uses a two-hook approach to validate submissions:
 - The time threshold is a balance between security and user experience; 5-10 seconds is usually optimal.
 - Regularly update your spam patterns based on the spam you receive.
 - Consider hiding error messages in production to avoid giving feedback to spammers.
+- The rate limiter enforces a garbage collection threshold of 1 day for temporary files and limits the total number of files to 1000. These values are hardcoded and not configurable.
 
 ## Troubleshooting
 - If legitimate users can't submit forms, try decreasing the `spamTimeThreshold`.
 - If you're getting false positives, review and update your spam word patterns.
 - Check your MODX error logs for detailed information about blocked submissions.
 
+  
 ## Support
 For assistance or to report issues, please contact:
 - Email: jay@modx.com
