@@ -12,7 +12,7 @@
  * - You must include a hidden time token field in your form.
  * 
  * @author Jay Gilmore <jay@modx.com>
- * @package formit
+ * @package formprotection
  * @subpackage hooks
  *
  * PROPERTIES:
