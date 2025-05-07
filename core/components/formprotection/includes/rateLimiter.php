@@ -67,7 +67,7 @@ function isRateLimited($actionKey, $limitSeconds = 10, $cookieName = 'submission
     // Garbage collection: Remove old temp files and limit total file count
     $tempDir = sys_get_temp_dir();
     $files = glob($tempDir . '/ratelimit_*.tmp');
-    $gcThreshold = 86400; // 1 day
+    $gcThreshold = 86400 * 14; // 14 days
     $maxFiles = 1000; // Maximum number of files allowed
 
     // Remove files older than the threshold
