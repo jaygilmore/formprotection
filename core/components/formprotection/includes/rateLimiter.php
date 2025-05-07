@@ -30,13 +30,39 @@ function isRateLimited($actionKey, $limitSeconds = 10, $cookieName = 'submission
     }
 
     // Create a unique key based on the action, IP, User-Agent, and cookie
-    $key = md5($actionKey . '_' . $ip . '_' . $userAgent . '_' . $cookieValue);
+    $key = hash('sha256', $actionKey . '_' . $ip . '_' . $userAgent . '_' . $cookieValue);
 
     // Set the file path in the temp directory
     $file = sys_get_temp_dir() . "/ratelimit_{$key}.tmp";
 
     // Get current timestamp
     $now = time();
+
+    // Garbage collection: Remove old temp files and limit total file count
+    $tempDir = sys_get_temp_dir();
+    $files = glob($tempDir . '/ratelimit_*.tmp');
+    $gcThreshold = 86400; // 1 day
+    $maxFiles = 1000; // Maximum number of files allowed
+
+    // Remove files older than the threshold
+    foreach ($files as $tempFile) {
+        if (filemtime($tempFile) < ($now - $gcThreshold)) {
+            @unlink($tempFile); // Suppress errors if the file is already deleted
+        }
+    }
+
+    // If the total number of files exceeds the limit, delete the oldest files
+    if (count($files) > $maxFiles) {
+        // Sort files by modification time (oldest first)
+        usort($files, function ($a, $b) {
+            return filemtime($a) - filemtime($b);
+        });
+
+        // Delete files exceeding the max limit
+        foreach (array_slice($files, 0, count($files) - $maxFiles) as $tempFile) {
+            @unlink($tempFile);
+        }
+    }
 
     // Check if a record exists for this key
     if (file_exists($file)) {
