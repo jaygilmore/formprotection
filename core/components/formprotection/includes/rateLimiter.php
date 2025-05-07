@@ -50,17 +50,19 @@ function isRateLimited($actionKey, $limitSeconds = 10, $cookieName = 'submission
 
     // Check if the number of submissions exceeds the limit
     if (count($timestamps) >= $maxSubmissions) {
+        error_log("[RateLimiter] Rate limited due to max submissions: " . count($timestamps));
         return true; // Rate limited due to max submissions
+    }
+
+    // Enforce the per-request rate limit (e.g., 10 seconds between submissions)
+    if (count($timestamps) > 1 && ($now - $timestamps[count($timestamps) - 2]) < $limitSeconds) {
+        error_log("[RateLimiter] Rate limited due to per-request delay");
+        return true; // Rate limited due to per-request delay
     }
 
     // Add the current timestamp and save back to the file
     $timestamps[] = $now;
     file_put_contents($file, json_encode($timestamps));
-
-    // Enforce the per-request rate limit (e.g., 10 seconds between submissions)
-    if (count($timestamps) > 1 && ($now - $timestamps[count($timestamps) - 2]) < $limitSeconds) {
-        return true; // Rate limited due to per-request delay
-    }
 
     // Garbage collection: Remove old temp files and limit total file count
     $tempDir = sys_get_temp_dir();

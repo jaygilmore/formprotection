@@ -127,8 +127,8 @@ if ($enableRateLimit && empty($hook->getErrors())) {
             $rateLimitMaxSubmissions,
             $rateLimitSubmissionInterval
         )) {
-            $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Rate limit exceeded: Too many submissions.");
-            $hook->addError('rate_limit', $rateLimitMaxSubmissionsErrorMessage);
+            $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Rate limit exceeded.");
+            $hook->addError('rate_limit', $rateLimitErrorMessage);
             return false;
         }
     } else {
