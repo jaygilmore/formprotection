@@ -104,7 +104,11 @@ if ($enableRateLimit && empty($hook->getErrors())) {
             $rateLimitActionKey .= "_{$formId}";
         }
         
-        if (function_exists('isRateLimited') && isRateLimited($rateLimitActionKey, $rateLimitSeconds)) {
+        // Retrieve the cookie name from script properties
+        $cookieName = $modx->getOption('rateLimitCookieName', $scriptProperties, 'submission');
+
+        // Check if the IP + User-Agent + Cookie exceeds the submission limit
+        if (function_exists('isRateLimited') && isRateLimited($rateLimitActionKey, $rateLimitSeconds, $cookieName)) {
             $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Rate limit exceeded: Too many submissions.");
             $hook->addError('rate_limit', $rateLimitErrorMessage);
             return false;
