@@ -83,8 +83,8 @@ $rateLimitErrorMessage = $modx->getOption('rateLimitErrorMessage', $scriptProper
 // Check if rate limiting is enabled
 $enableRateLimit = (bool)$modx->getOption('rateLimit', $scriptProperties, true);
 
-// Rate limiting check
-if ($enableRateLimit) {
+// Apply rate limiting if there are no other errors
+if ($enableRateLimit && empty($hook->getErrors())) {
     // Include rateLimiter
     $path = $modx->getOption('formprotection.core_path', null, $modx->getOption('core_path') . 'components/formprotection/') . 'includes/';
     
