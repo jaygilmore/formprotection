@@ -95,13 +95,13 @@ if ($enableRateLimit) {
         // Rate limiting seconds
         $rateLimitSeconds = (int)$modx->getOption('rateLimitSeconds', $scriptProperties, 30);
         
-        // Allow custom action key per form (useful for multiple forms on the same site)
+        // Allow custom action key per form
         $rateLimitActionKey = $modx->getOption('rateLimitActionKey', $scriptProperties, 'formProtection');
         
         // Optionally append form ID to make rate limiting unique per form
         $formId = $modx->getOption('formId', $scriptProperties, '');
         if (!empty($formId)) {
-            $rateLimitActionKey .= '_' . $formId;
+            $rateLimitActionKey .= "_{$formId}";
         }
         
         if (function_exists('isRateLimited') && isRateLimited($rateLimitActionKey, $rateLimitSeconds)) {
@@ -110,7 +110,7 @@ if ($enableRateLimit) {
             return false;
         }
     } else {
-        $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] rateLimiter.php not found at: " . $path);
+        $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] rateLimiter.php not found at: {$path}");
     }
 }
 
@@ -121,13 +121,15 @@ foreach ($formFields as $fieldName => $fieldValue) {
         continue;
     }
 
+    // Skip empty fields
     if (empty($fieldValue)) {
         continue;
     }
 
+    // Check for spam patterns
     foreach ($spamWordPatterns as $spam) {
         if (!empty($spam) && stripos($fieldValue, $spam) !== false) {
-            $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] SPAM DETECTED in field '$fieldName' with pattern '$spam'");
+            $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] SPAM DETECTED in field '{$fieldName}' with pattern '{$spam}'");
             $hook->addError($fieldName, $spamContentErrorMessage);
         }
     }
