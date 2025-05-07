@@ -90,7 +90,7 @@ if ($enableRateLimit) {
         
         if (function_exists('isRateLimited') && isRateLimited($rateLimitActionKey, $rateLimitSeconds)) {
             $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Rate limit exceeded: Too many submissions.");
-            $hook->addError('rate_limit', $rateLimitErrorMessage);
+            $hook->addError($fieldName, $rateLimitErrorMessage);
             return false;
         }
     } else {
