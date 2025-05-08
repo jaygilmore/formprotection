@@ -35,6 +35,7 @@ Requires: MODX Revolution, FormIt
   &rateLimitCookieName=`threshold_token`
   &rateLimitMaxSubmissions=`10`
   &rateLimitSubmissionInterval=`3600`
+  &spamRedirectResourceId=`123`
 ]]
 
 <form action="[[~[[*id]]]]" method="post">
@@ -54,6 +55,25 @@ Form Protection uses a two-hook approach to validate submissions:
    - Scanning all text fields for spam content patterns.
    - Validating email addresses against known spam patterns.
    - Enforcing rate limiting to prevent multiple submissions in a short time frame.
+   - **Redirecting suspected spammers** to a specified resource ID if `spamRedirectResourceId` is set.
+
+### Redirecting Suspected Spammers
+
+The `spamRedirectResourceId` property allows you to redirect suspected spammers to a specific resource ID (e.g., a custom "Access Denied" or "Spam Detected" page). This property is optional and can be configured as follows:
+
+- **Property**: `spamRedirectResourceId`
+- **Description**: Resource ID of the page to redirect suspected spammers to. If not set or invalid, no redirection occurs. The "submitted too fast" error does not trigger a redirect.
+- **Default**: `""` (no redirection)
+
+#### Example Usage
+
+```markdown
+[[!FormIt?
+  &preHooks=`generateTimeTokenHook`
+  &hooks=`formProtectionHook,email`
+  &spamRedirectResourceId=`123`
+]]
+```
 
 ## Configuration Options
 
@@ -83,6 +103,7 @@ Form Protection uses a two-hook approach to validate submissions:
 | rateLimitMaxSubmissions   | Maximum number of submissions allowed within the timeframe | 5                                       |
 | rateLimitSubmissionInterval | Timeframe (in seconds) for counting submissions | 86400 (1 day)                           |
 | rateLimitMaxSubmissionsErrorMessage | Error message for exceeding max submissions | "You have reached the maximum number of submissions allowed. Please try again later." |
+| spamRedirectResourceId    | Resource ID of the page to redirect suspected spammers to. If not set or invalid, no redirection occurs. The "submitted too fast" error does not trigger a redirect. | "" |
 
 #### generateTimeTokenHook
 | Property                  | Description                                      | Default                                   |
@@ -101,7 +122,6 @@ Form Protection uses a two-hook approach to validate submissions:
 - If you're getting false positives, review and update your spam word patterns.
 - Check your MODX error logs for detailed information about blocked submissions.
 
-  
 ## Support
 For assistance or to report issues, please contact:
 - Email: jay@modx.com

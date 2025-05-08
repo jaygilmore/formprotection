@@ -6,6 +6,7 @@
  * - Spam word and email filtering
  * - Submission timing check using a time token
  * - Optional rate limiting
+ * - Optional redirection for suspected spammers
  *
  * IMPORTANT:
  * - This hook requires the `generateTimeTokenHook` to be used as a preHook.
@@ -14,7 +15,7 @@
  * @author Jay Gilmore <jay@modx.com>
  * @package formprotection
  * @subpackage hooks
- *
+ * 
  * PROPERTIES:
  * -------------------
  * spamEmailField            - Name of the email field to check (default: email)
@@ -37,6 +38,10 @@
  * rateLimitMaxSubmissions   - Maximum number of submissions allowed within the timeframe (default: 5)
  * rateLimitSubmissionInterval - Timeframe for counting submissions in seconds (default: 86400, i.e., 1 day)
  *
+ * spamRedirectResourceId    - Resource ID of the page to redirect suspected spammers to. 
+ *                             If not set or invalid, no redirection occurs. 
+ *                             The "submitted too fast" error does not trigger a redirect.
+ *
  * spamTimeSessionKey        - Session key used for clearing the time token (default: form_time_token)
  *
  * USAGE:
@@ -46,8 +51,10 @@
  *   &hooks=`formProtectionHook,email`
  *   &spamTimeThreshold=`5`
  *   &rateLimit=`1`
+ *   &spamRedirectResourceId=`123`
  *   ...
  * ]]
+ *
  *
  * Inside your form:
  * <input type="hidden" name="form_time_token" value="[[!+fi.form_time_token]]">
@@ -61,6 +68,7 @@
 
 
 // Get form values 
+/** @var modX $modx */
 $formFields = $hook->getValues();
 $errors = array();
 
@@ -208,7 +216,24 @@ if (!empty($token) && strpos($token, ':') !== false) {
     $modx->log(modX::LOG_LEVEL_ERROR, "[FormProtection] Invalid time token format");
     $hook->addError($timeField, $timeTokenErrorMessage);
 }
+// Check for spam redirect resource ID
+$spamRedirectResourceId = $modx->getOption('spamRedirectResourceId', $scriptProperties, null);
 
+if (!empty($spamRedirectResourceId) && is_numeric($spamRedirectResourceId)) {
+    // Get all errors
+    $errors = $hook->getErrors();
+
+    // Exclude the "submitted too fast" error from triggering the redirect
+    if (isset($errors['form_time_token']) && $errors['form_time_token'] === $timeThresholdErrorMessage) {
+        $modx->log(modX::LOG_LEVEL_INFO, "[FormProtection] Skipping redirect for 'submitted too fast' error.");
+    } elseif (!empty($errors)) {
+        // Redirect for all other errors
+        $redirectUrl = $modx->makeURL((int)$spamRedirectResourceId, '', '', 'full');
+        $modx->log(modX::LOG_LEVEL_INFO, "[FormProtection] Redirecting suspected spammer to resource ID {$spamRedirectResourceId}");
+        header("Location: {$redirectUrl}");
+        exit;
+    }
+}
 // Optionally clear the token from session after successful submission
 $sessionKey = $modx->getOption('spamTimeSessionKey', $scriptProperties, 'form_time_token');
 if (session_status() === PHP_SESSION_NONE) {
