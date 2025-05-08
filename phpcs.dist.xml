@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<ruleset name="FormProtection Coding Standards">
+    <!-- Use a less strict coding standard -->
+    <rule ref="PSR2" />
+
+    <!-- Exclude specific variables from being flagged -->
+    <exclude-pattern>*$modx*</exclude-pattern>
+    <exclude-pattern>*$modX*</exclude-pattern>
+
+    <!-- Include only the relevant directory -->
+    <file>./core/components/formprotection</file>
+
+    <!-- Additional configurations -->
+    <arg name="colors" value="1" />
+    <arg name="cache" value=".phpcs-cache" />
+
+    <!-- Ignore specific warnings or errors -->
+    <exclude name="Generic.PHP.LowerCaseConstant" />
+    <exclude name="Generic.Files.LineLength.TooLong" />
+</ruleset>
