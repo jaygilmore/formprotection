@@ -222,11 +222,12 @@ if (!empty($spamRedirectResourceId) && is_numeric($spamRedirectResourceId)) {
     if (isset($errors['form_time_token']) && $errors['form_time_token'] === $timeThresholdErrorMessage) {
         $modx->log(modX::LOG_LEVEL_INFO, "[FormProtection] Skipping redirect for 'submitted too fast' error.");
     } elseif (!empty($errors)) {
-        // Redirect for all other errors
-        $redirectUrl = $modx->makeURL((int)$spamRedirectResourceId, '', '', 'full');
-        $modx->log(modX::LOG_LEVEL_INFO, "[FormProtection] Redirecting suspected spammer to resource ID {$spamRedirectResourceId}");
-        header("Location: {$redirectUrl}");
-        exit;
+        if (!empty($errors) && !isset($errors['rate_limit']) && !isset($errors['form_time_token'])) {
+            $redirectUrl = $modx->makeURL((int)$spamRedirectResourceId, '', '', 'full');
+            $modx->log(modX::LOG_LEVEL_INFO, "[FormProtection] Redirecting suspected spammer to resource ID {$spamRedirectResourceId}");
+            header("Location: {$redirectUrl}");
+            exit;
+        }
     }
 }
 // Optionally clear the token from session after successful submission
