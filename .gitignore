@@ -1,1 +1,5 @@
+# Local VSCode Sync Settings
 .vscode/
+
+# Local machine-specific files
+.DS_Store
