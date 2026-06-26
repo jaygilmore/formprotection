@@ -7,3 +7,8 @@ author: jaygilmore
 snippets:
     - name: formProtectionHook
     - name: generateTimeTokenHook
+systemSettings:
+    - 
+        key: formit.spam_time_secret
+        value: ''
+        type: textfield
